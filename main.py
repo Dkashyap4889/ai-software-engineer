@@ -1,103 +1,16 @@
-import time
-
 from edge import Edge
 from graph import Graph
 from executor import GraphExecutor
-
-
-class Node:
-    def __init__(self, name):
-        self.name = name
-
-    def execute(self, state):
-        return state
-
-
-class RouterNode(Node):
-    def execute(self, state):
-        state["routes"] = ["code", "research"]
-        return state
-
-class RepairNode(Node):
-    def execute(self, state):
-        print("  Repair: fixing implementation")
-
-        state["attempts"] = (
-            state.get("attempts", 0) + 1
-        )
-
-        state["code"] = "repaired"
-
-        return state
-
-class TestNode(Node):
-    def execute(self, state):
-        attempts = state.get("attempts", 0)
-
-        state["valid"] = attempts >= 2
-
-        return state
-
-class AggregatorNode(Node):
-    def __init__(self, name, expected_branches=2):
-        super().__init__(name)
-
-        self.is_join = True
-        self.expected_branches = expected_branches
-
-    def execute(self, state):
-        branches = state.get("branches", [])
-
-        print(
-            f"  Received {len(branches)} branch results"
-        )
-
-        state["aggregated"] = True
-        state["branch_count"] = len(branches)
-
-        return state
-
-class ImplementNode(Node):
-    def execute(self, state):
-        attempts = state.get("implement_attempts", 0) + 1
-        state["implement_attempts"] = attempts
-
-        print(
-            f"  Implement: attempt {attempts}"
-        )
-
-        time.sleep(2)
-
-        if attempts == 1:
-            raise RuntimeError(
-                "Implementation failed"
-            )
-
-        print("  Implement: finished")
-
-        state["code"] = "generated"
-
-        return state
-
-class ResearchNode(Node):
-    def execute(self, state):
-        print("  Research: starting")
-
-        time.sleep(2)
-
-        print("  Research: finished")
-
-        state["research"] = "completed"
-
-        return state
-
-class ErrorHandlerNode(Node):
-    def execute(self, state):
-        print("  ErrorHandler: handling failure")
-
-        state["error_handled"] = True
-
-        return state
+from Node import (
+    AggregatorNode,
+    ErrorHandlerNode,
+    ImplementNode,
+    Node,
+    RepairNode,
+    ResearchNode,
+    RouterNode,
+    TestNode,
+)
 
 def is_code(state):
     return state["route"] == "code"
