@@ -1,0 +1,39 @@
+{
+  "execution_id": "e19432ed",
+  "ready": [],
+  "waiting": {},
+  "terminal_state": {
+    "routes": [
+      "code",
+      "research"
+    ],
+    "research": "completed",
+    "implement_attempts": 1,
+    "error_handled": true,
+    "attempts": 2,
+    "code": "repaired",
+    "branches": [
+      {
+        "routes": [
+          "code",
+          "research"
+        ],
+        "research": "completed"
+      },
+      {
+        "routes": [
+          "code",
+          "research"
+        ],
+        "implement_attempts": 1,
+        "error_handled": true,
+        "attempts": 1,
+        "code": "repaired"
+      }
+    ],
+    "aggregated": true,
+    "branch_count": 2,
+    "valid": true
+  },
+  "steps": 13
+}
