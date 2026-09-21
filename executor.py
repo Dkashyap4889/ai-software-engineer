@@ -168,6 +168,9 @@ class GraphExecutor:
 
                             required = target.expected_branches
 
+                            if callable(required):
+                                required = required(current_state)
+
                             print(
                                 f"  {target.name}: "
                                 f"received "
@@ -297,6 +300,11 @@ class GraphExecutor:
             duration_ms = (
                 time.perf_counter() - start_time
             ) * 1000
+
+            print(
+                f"  {node.name}: FAILED -> "
+                f"{type(exc).__name__}: {exc}"
+            )
 
             self._emit(
                 "NodeFailed",

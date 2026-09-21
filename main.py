@@ -5,12 +5,22 @@ from Node import (
     AggregatorNode,
     ErrorHandlerNode,
     ImplementNode,
-    Node,
-    RepairNode,
+    DoneNode,
+    FailedNode,
+    PlanNode,
+    ImplementationRepairNode,
     ResearchNode,
     RouterNode,
     TestNode,
+    TestImplementNode,
+    UnderstandNode,
+    StartNode,
+    EnvironmentNode,
+    TestRepairNode
 )
+from llm.gemini_client import GeminiClient
+from tools.command_runner import CommandRunner
+from tools.file_writer import FileWriter
 
 def is_code(state):
     return state["route"] == "code"
@@ -40,24 +50,93 @@ def needs_research(state):
 def has_error(state, error):
     return error is not None
 
-# Nodes
-start = Node("Start")
-understand = Node("Understand")
-plan = Node("Plan")
-router = RouterNode("Router")
-implementation_repair = RepairNode(
+def test_failed(state):
+    return not state.get("valid", False)
+
+# ============================================================
+# CREATE DEPENDENCIES
+# ============================================================
+
+llm = GeminiClient()
+
+file_writer = FileWriter(
+    "generated_app"
+)
+
+command_runner = CommandRunner()
+
+# ============================================================
+# CREATE NODES
+# ============================================================
+start = StartNode(
+    "Start"
+)
+
+understand = UnderstandNode(
+    "Understand",
+    llm=llm
+)
+
+plan = PlanNode(
+    "Plan",
+    llm=llm
+)
+
+router = RouterNode(
+    "Router"
+)
+
+implement = ImplementNode(
+    "Implement",
+    llm=llm,
+    file_writer=file_writer
+)
+
+research = ResearchNode(
+    "Research"
+)
+
+aggregator = AggregatorNode(
+    "Aggregator"
+)
+
+test = TestNode(
+    "Test",
+    command_runner=command_runner
+)
+
+test_implement_node = TestImplementNode(
+    "TestImplement",
+    llm=llm,
+    file_writer=file_writer
+)
+
+environment = environment = EnvironmentNode(
+    "Environment",
+    command_runner
+)
+
+error_handler = ErrorHandlerNode(
+    "ErrorHandler"
+)
+
+implementation_repair = ImplementationRepairNode(
     "ImplementationRepair"
 )
-test_repair = RepairNode(
-    "TestRepair"
+
+test_repair = TestRepairNode(
+    "TestRepair",
+    llm,
+    file_writer
 )
-implement = ImplementNode("Implement")
-research = ResearchNode("Research")
-aggregator = AggregatorNode("Aggregator")
-test = TestNode("Test")
-done = Node("Done")
-failed = Node("Failed")
-error_handler = ErrorHandlerNode("ErrorHandler")
+
+done = DoneNode(
+    "Done"
+)
+
+failed = FailedNode(
+    "Failed"
+)
 
 # Graph
 graph = Graph()
@@ -83,7 +162,8 @@ for node in [
 graph.add_edge(Edge(start, understand))
 graph.add_edge(Edge(understand, plan))
 graph.add_edge(Edge(plan, router))
-
+graph.add_edge(Edge(test_implement_node, environment))
+graph.add_edge(Edge(environment, test))
 graph.add_edge(
     Edge(
         router,
@@ -117,7 +197,12 @@ graph.add_edge(
 )
 graph.add_edge(Edge(research, aggregator))
 
-graph.add_edge(Edge(aggregator, test))
+graph.add_edge(
+    Edge(aggregator, test_implement_node)
+)
+
+graph.add_edge(Edge(test_implement_node, environment))
+graph.add_edge(Edge(environment, test))
 
 graph.add_edge(
     Edge(
@@ -135,20 +220,7 @@ graph.add_edge(
     )
 )
 
-graph.add_edge(
-    Edge(
-        test,
-        test_repair,
-        condition=needs_repair
-    )
-)
 
-graph.add_edge(
-    Edge(
-        test_repair,
-        test
-    )
-)
 
 graph.add_edge(
     Edge(
@@ -160,9 +232,37 @@ graph.add_edge(
 graph.add_edge(
     Edge(
         implementation_repair,
-        aggregator
+        implement
     )
 )
+
+graph.add_edge(
+    Edge(test, done, is_valid)
+)
+
+graph.add_edge(
+    Edge(test, failed, test_failed)
+)
+
+graph.add_edge(
+    Edge(test,
+        done,
+        condition=lambda state, error: (
+            error is None
+            and state.get("test_result", {}).get("success") is True
+        ))
+)
+
+graph.add_edge(
+    Edge(test,
+        test_repair,
+        condition=lambda state, error: (
+            error is None
+            and state.get("test_result", {}).get("success") is False
+        ))
+)
+
+graph.add_edge(Edge(test_repair, test))
 
 # Display graph
 graph.display()

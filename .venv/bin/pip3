@@ -1,4 +1,4 @@
-#!/home/dheeraj/Desktop/ai-software-engineer/.venv/bin/python3
+#!/home/dheeraj/Desktop/ai-software-engineer/.venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
